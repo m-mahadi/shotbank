@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="ShotBank">
+  <defs>
+    <linearGradient id="bg" x1="42" y1="28" x2="214" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18181b"/>
+      <stop offset="1" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="80" y1="56" x2="190" y2="204" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <rect x="34" y="50" width="188" height="156" rx="18" fill="none" stroke="#3f3f46" stroke-width="12"/>
+  <path d="M34 88h188M34 168h188" stroke="#27272a" stroke-width="12"/>
+  <path d="M68 50v156M188 50v156" stroke="#27272a" stroke-width="12"/>
+  <circle cx="128" cy="128" r="52" fill="#09090b" stroke="url(#amber)" stroke-width="12"/>
+  <circle cx="128" cy="128" r="18" fill="url(#amber)"/>
+  <path d="M128 76v38M173 102l-33 19M173 154l-33-19M128 180v-38M83 154l33-19M83 102l33 19" stroke="#fef3c7" stroke-width="8" stroke-linecap="round"/>
+</svg>
