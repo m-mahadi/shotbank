@@ -1,0 +1,109 @@
+name: Release
+
+# Builds the Windows installer and (once SignPath is configured) signs it for
+# free using SignPath Foundation's open-source code-signing program, then
+# attaches the installer to the GitHub Release.
+#
+# Trigger: publish a GitHub Release (or push a tag like v0.1.0).
+#
+# --------------------------------------------------------------------------
+# ONE-TIME SETUP (see RELEASING.md for the full walkthrough):
+#   1. Apply at https://signpath.org/ (free for open-source projects).
+#   2. Once approved, fill in the three SIGNPATH_* values under `env:` below.
+#   3. Add repository secret  SIGNPATH_API_TOKEN  (Settings -> Secrets -> Actions).
+# Until those are set, the workflow still runs and publishes an UNSIGNED
+# installer -- it just skips the signing step.
+# --------------------------------------------------------------------------
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  # downdowndown Fill these in after SignPath approves the project (see RELEASING.md) downdowndown
+  SIGNPATH_ORGANIZATION_ID: ""
+  SIGNPATH_PROJECT_SLUG: "shotbank"
+  SIGNPATH_SIGNING_POLICY_SLUG: "release-signing"
+  # The secret itself is added in GitHub repo settings, not here:
+  SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run electron:dist
+
+      - name: Collect installer
+        id: collect
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path dist -Filter "ShotBank Setup *.exe" |
+                 Where-Object { $_.Name -notlike "*uninstaller*" } |
+                 Select-Object -First 1
+          if (-not $exe) { throw "No installer found in dist/" }
+          New-Item -ItemType Directory -Force -Path unsigned | Out-Null
+          Copy-Item $exe.FullName "unsigned/$($exe.Name)"
+          "installer-name=$($exe.Name)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload unsigned installer (artifact for signing)
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: shotbank-installer-unsigned
+          path: unsigned/
+
+      # -- Signing (free, open-source SignPath). Skipped until configured. --
+      - name: Submit to SignPath for signing
+        id: sign
+        if: ${{ env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Pick installer to publish (signed if available)
+        id: pick
+        shell: pwsh
+        run: |
+          $name = "${{ steps.collect.outputs.installer-name }}"
+          if (Test-Path "signed/$name") {
+            "path=signed/$name" >> $env:GITHUB_OUTPUT
+            "signed=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "path=unsigned/$name" >> $env:GITHUB_OUTPUT
+            "signed=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Attach installer to GitHub Release
+        if: ${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pick.outputs.path }}
+          fail_on_unmatched_files: true

@@ -46,6 +46,7 @@ app.setAppUserModelId(APP_ID);
 let mainWindow;
 let serverProcess;
 let shortcutRegistered = false;
+let flashWindow = null;
 
 function appRoot() {
   return app.getAppPath();
@@ -363,6 +364,72 @@ async function deleteMovie(movieId) {
   return getState();
 }
 
+function closeFlashWindow() {
+  if (flashWindow && !flashWindow.isDestroyed()) {
+    flashWindow.destroy();
+  }
+  flashWindow = null;
+}
+
+// Cosmetic, system-wide "screenshot taken" animation. Shown AFTER the frame is
+// captured so the flash never appears in the saved PNG. Must never throw --
+// capture has to succeed even if the overlay fails.
+function showCaptureFlash(display, imageUrl) {
+  if (process.env.SHOTBANK_SELF_TEST === "1") return;
+  try {
+    const bounds = (display && display.bounds) || screen.getPrimaryDisplay().bounds;
+    closeFlashWindow();
+
+    flashWindow = new BrowserWindow({
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      frame: false,
+      transparent: true,
+      backgroundColor: "#00000000",
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      focusable: false,
+      resizable: false,
+      movable: false,
+      minimizable: false,
+      maximizable: false,
+      hasShadow: false,
+      enableLargerThanScreen: true,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    flashWindow.setIgnoreMouseEvents(true);
+    flashWindow.setAlwaysOnTop(true, "screen-saver");
+
+    const query = imageUrl ? { img: imageUrl } : undefined;
+    flashWindow.loadFile(path.join(__dirname, "flash.html"), query ? { query } : undefined);
+
+    flashWindow.once("ready-to-show", () => {
+      if (flashWindow && !flashWindow.isDestroyed()) {
+        flashWindow.showInactive();
+      }
+    });
+
+    const owned = flashWindow;
+    setTimeout(() => {
+      if (owned === flashWindow) {
+        closeFlashWindow();
+      } else if (owned && !owned.isDestroyed()) {
+        owned.destroy();
+      }
+    }, 1250);
+  } catch {
+    // The flash is purely cosmetic; swallow any error.
+    flashWindow = null;
+  }
+}
+
 async function captureActiveSession(trigger = "manual") {
   const state = getState();
   if (!state.activeMovie) {
@@ -402,6 +469,9 @@ async function captureActiveSession(trigger = "manual") {
   const filePath = uniqueFilePath(movie.folderPath, `shot-${stamp}.png`);
   const fileName = path.basename(filePath);
   fs.writeFileSync(filePath, source.thumbnail.toPNG());
+
+  // Frame is on disk now -- safe to flash the screen without it landing in the PNG.
+  showCaptureFlash(display, shotFileUrl(filePath));
 
   const shot = {
     id: crypto.randomUUID(),
@@ -748,6 +818,7 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", () => {
   globalShortcut.unregisterAll();
+  closeFlashWindow();
   stopServer();
 });
 app.on("window-all-closed", () => {

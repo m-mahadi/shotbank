@@ -289,7 +289,12 @@ function TopBar({
         <Button
           onClick={onCapture}
           disabled={!activeMovie || busy}
-          className="h-8 gap-1.5 bg-amber-500 px-4 text-xs font-semibold text-zinc-950 hover:bg-amber-400"
+          title={
+            activeMovie
+              ? `Capture the screen (${formatShortcut(state?.config.shortcut)})`
+              : "Start a session to capture"
+          }
+          className="h-8 gap-1.5 bg-amber-500 px-4 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400 active:scale-95"
         >
           <Camera className="h-4 w-4" /> Capture
         </Button>
@@ -635,8 +640,13 @@ function ShotNotes({
             <button
               key={rating}
               onClick={() => updateDraft({ rating })}
-              className="p-1 text-amber-400"
+              className={cn(
+                "p-1 transition-colors hover:text-amber-300",
+                rating <= draft.rating ? "text-amber-400" : "text-zinc-600",
+              )}
               aria-label={`Rate ${rating}`}
+              aria-pressed={rating <= draft.rating}
+              title={`${rating} star${rating > 1 ? "s" : ""}`}
             >
               <Star className={cn("h-5 w-5", rating <= draft.rating ? "fill-amber-400" : "")} />
             </button>
@@ -846,6 +856,11 @@ function Field({ label, children, className }: { label: string; children: ReactN
       {children}
     </div>
   );
+}
+
+function formatShortcut(value?: string) {
+  if (!value) return shortcutDefault;
+  return value.replace(/CommandOrControl/gi, "Ctrl").replace(/\+/g, " + ");
 }
 
 function formatDate(value: string) {

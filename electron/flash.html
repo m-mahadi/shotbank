@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShotBank Capture</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        background: transparent;
+        cursor: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* Crisp white shutter flash -- fast in, fast out, like a camera. */
+      #flash {
+        position: fixed;
+        inset: 0;
+        background: #ffffff;
+        opacity: 0;
+        will-change: opacity;
+        animation: shotbank-flash 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      @keyframes shotbank-flash {
+        0% {
+          opacity: 0;
+        }
+        9% {
+          opacity: 0.8;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* The captured frame pops in centred, holds, then glides into the
+         bottom-right corner and shrinks -- the recognisable "saved" gesture. */
+      #thumb {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        max-width: 44vw;
+        max-height: 44vh;
+        border-radius: 14px;
+        background: #000;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.4);
+        outline: 4px solid #ffffff;
+        outline-offset: 0;
+        opacity: 0;
+        will-change: transform, opacity;
+        transform: translate(-50%, -50%) scale(1.08);
+        animation: shotbank-dock 1080ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+
+      @keyframes shotbank-dock {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(1.08);
+        }
+        12% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        38% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        78% {
+          opacity: 1;
+          transform: translate(40vw, 42vh) scale(0.17);
+        }
+        90% {
+          opacity: 1;
+          transform: translate(40vw, 42vh) scale(0.17);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(40vw, 42vh) scale(0.17);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #flash {
+          animation: shotbank-flash 240ms ease-out forwards;
+        }
+        #thumb {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="flash"></div>
+    <img id="thumb" alt="" />
+    <script>
+      const params = new URLSearchParams(location.search);
+      const img = params.get("img");
+      const thumb = document.getElementById("thumb");
+      if (img) {
+        thumb.onerror = () => {
+          thumb.style.display = "none";
+        };
+        thumb.src = decodeURIComponent(img);
+      } else {
+        thumb.style.display = "none";
+      }
+    </script>
+  </body>
+</html>

@@ -6,6 +6,26 @@ Start a movie session, press a global shortcut, and ShotBank saves the screensho
 
 No cloud account. No database server. No upload.
 
+## Download and Install
+
+1. Go to the [Releases](https://github.com/m-mahadi/shotbank/releases) page.
+2. Download the latest `ShotBank Setup x.y.z.exe`.
+3. Double-click it and follow the installer. No admin rights and no extra
+   software (no Node.js, no runtime) are required -- everything is bundled.
+
+### "Windows protected your PC"?
+
+If Windows shows a blue **"Windows protected your PC"** box, that is just
+SmartScreen being cautious about a new, free, open-source app -- not a virus
+warning. To continue:
+
+1. Click **More info**.
+2. Click **Run anyway**.
+
+This only happens on the first install. Signed releases (which remove this
+prompt entirely) are being set up via [SignPath Foundation](https://signpath.org/);
+see [RELEASING.md](RELEASING.md).
+
 ## Features
 
 - Local screenshot capture from a global shortcut
